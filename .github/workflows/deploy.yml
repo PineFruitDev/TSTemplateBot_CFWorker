@@ -1,0 +1,72 @@
+name: Deploy to Cloudflare Workers
+
+# Automatic deployment:
+# - Push to 'dev' branch → deploys to dev environment
+# - Push to 'prod' branch → deploys to prod environment
+
+on:
+  push:
+    branches:
+      - dev
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Use environment secrets based on branch
+    environment: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Verify Cloudflare Access
+        # Verify API token and account ID are valid before proceeding
+        run: |
+          echo "Verifying Cloudflare API access..."
+          npx wrangler whoami
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Workers (Initial)
+        # Deploy worker first (without secrets) so we can set secrets afterward
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }} --compatibility-date 2024-11-26
+        continue-on-error: false
+
+      - name: Set Cloudflare Secrets
+        # Secrets must be set AFTER worker is deployed
+        # We read from GitHub Secrets and set them in Cloudflare using stdin
+        run: |
+          echo "${{ secrets.DISCORD_TOKEN }}" | npx wrangler secret put DISCORD_TOKEN --env ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
+          echo "${{ secrets.DISCORD_CLIENT_ID }}" | npx wrangler secret put DISCORD_CLIENT_ID --env ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
+          echo "${{ secrets.DISCORD_PUBLIC_KEY }}" | npx wrangler secret put DISCORD_PUBLIC_KEY --env ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        continue-on-error: false
+
+      - name: Register Discord Commands
+        run: npm run register
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
+          NODE_ENV: ${{ github.ref == 'refs/heads/prod' && 'production' || 'development' }}
+        continue-on-error: false # Fail if registration fails

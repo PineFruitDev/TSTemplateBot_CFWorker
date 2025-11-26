@@ -1,0 +1,40 @@
+name = "discord-bot-template"
+main = "src/worker.ts"
+compatibility_date = "2024-11-26"
+
+# Enable Node.js compatibility for discord.js
+compatibility_flags = ["nodejs_compat"]
+
+# Cron triggers for scheduled tasks
+# Format: "minute hour day month weekday"
+# Examples:
+#   "0 * * * *"     - Every hour
+#   "0 */6 * * *"   - Every 6 hours
+#   "0 0 * * *"     - Daily at midnight
+#   "0 0 * * 0"     - Weekly on Sunday
+[triggers]
+crons = ["0 * * * *"]  # Default: every hour (customize as needed)
+
+# Development environment
+[env.dev]
+name = "discord-bot-template-dev"
+compatibility_date = "2024-11-26"
+compatibility_flags = ["nodejs_compat"]
+crons = ["0 * * * *"]  # Can use different schedule for dev
+
+# Production environment
+[env.prod]
+name = "discord-bot-template-prod"
+compatibility_date = "2024-11-26"
+compatibility_flags = ["nodejs_compat"]
+crons = ["0 * * * *"]  # Production schedule
+
+# KV namespaces (uncomment and create in Cloudflare dashboard if needed)
+# [[env.dev.kv_namespaces]]
+# binding = "SHOP_DATA"
+# id = "your-kv-namespace-id"
+
+# [[env.prod.kv_namespaces]]
+# binding = "SHOP_DATA"
+# id = "your-kv-namespace-id"
+

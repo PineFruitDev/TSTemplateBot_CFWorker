@@ -2,6 +2,7 @@
   "name": "discord-bot-template-cfworker",
   "version": "1.0.0",
   "description": "A clean, modular Discord bot template for Cloudflare Workers with command class pattern",
+  "license": "SEE LICENSE IN LICENSE",
   "author": "PineFruitDev <contact@pinefruit.dev>",
   "type": "module",
   "private": true,
